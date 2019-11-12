@@ -4,6 +4,7 @@ import os
 import sys
 import subprocess
 import idnscan
+import iamass
 subprocess.call('clear', shell=True)
 PATH = os.getcwd()
 
@@ -26,16 +27,21 @@ choice = 1
 if (choice == 1):
     print (hr)
     #input_domain = str(input ("Enter domain: "))
-    input_domain = 'jainuniversity.ac.in'
-    input_domain = 'vu.edu.pk'
+    #input_domain = 'jainuniversity.ac.in'
+    #input_domain = 'vu.edu.pk'
+    input_domain = 'tagww.com'
     print (hr)
     print ("1. Merging Subdomains into [subdomain-dictionary.txt] for [" + input_domain + "] Domain")
     print (hr)
-    #idnscan.generate_subdomains()
+    idnscan.generate_subdomains()
     print (hr)
     print ('2. Running GITHUB:DNSCAN :' + input_domain)
     print (hr)
-    idnscan.run_dnscan(input_domain)
+    #idnscan.run_dnscan(input_domain)
+    print (hr)
+    print ('3. Running GITHUB:AMASS :' + input_domain)
+    print (hr)
+    iamass.run_amass(input_domain)
 elif (choice == 2):
     print (hr)
     print ('Generating subdomains, merged your subdomains directory')

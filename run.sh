@@ -8,3 +8,7 @@ docker run -d -p 27017:27017 --name $name mongo:latest
 
 
 python3 main.py
+
+#amass viz -d3
+
+#amass viz -d3

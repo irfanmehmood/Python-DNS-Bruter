@@ -12,12 +12,15 @@ class Db:
         client = MongoClient('127.0.0.1:27017')
         self.DbConnect = client.Recon
 
-    def scan_add_result(self, root_domain, scanner_slug, scanner_command, scanner_results, scanner_results_filename, scan_datetime):
+    def scan_add_result(self, root_domain, scanner_slug, scanner_command, scanner_results, found_domains_ips, found_domains, found_ips, scanner_results_filename, scan_datetime):
         return self.DbConnect.scans.insert({
             "root_domain" : root_domain,
             'scanner_slug' : scanner_slug,
             "scanner_command" : scanner_command,
             "scanner_results" : scanner_results,
+            "found_domains_ips" : found_domains_ips,
+            "found_domains" : found_domains,
+            "found_ips" : found_ips, 
             "scanner_results_filename" : scanner_results_filename,
             "scan_datetime" : scan_datetime
         })
