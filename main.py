@@ -29,7 +29,8 @@ if (choice == 1):
     #input_domain = str(input ("Enter domain: "))
     #input_domain = 'jainuniversity.ac.in'
     #input_domain = 'vu.edu.pk'
-    input_domain = 'tagww.com'
+    #input_domain = 'tagww.com'
+    input_domain = 'appcheck-ng.com'
     print (hr)
     print ("1. Merging Subdomains into [subdomain-dictionary.txt] for [" + input_domain + "] Domain")
     print (hr)

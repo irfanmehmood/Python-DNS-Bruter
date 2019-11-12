@@ -48,7 +48,7 @@ def run_amass(domain, recursive=False, torred=True):
     print (hr)
 
     #run our command
-    command = 'amass enum -ip -norecursive' + args
+    command = 'amass enum -ip ' + args
     os.system(command)
 
     # Read data from amass output file
