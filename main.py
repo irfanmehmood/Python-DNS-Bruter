@@ -3,7 +3,7 @@
 import os
 import sys
 import subprocess
-import subdomains
+import idnscan
 subprocess.call('clear', shell=True)
 PATH = os.getcwd()
 
@@ -14,57 +14,33 @@ def show_splash_screen():
         print ('2. Merge your domains into a text file')
         print (hr)
 
-def run_dnscan(domain, recursive=False, torred=True):
-        #sys.exit()
-        recursive_flag = ' -r' if recursive else ''
-        domain_flag = ' -d ' + domain
-        domain_list = ''
-        nocheck = ' -n' if torred else ''
-        threads = ' -t 4'
 
-        subdomains_dictionary_file = ' -w ' + PATH + '/sub-domains-list/subdomain-dictionary.txt'
-        subdomains_found_output_file = ' -o ' + PATH + '/scan_output/ ' + domain + '-output.txt'
-        args = (recursive_flag 
-            + threads
-            + domain_flag 
-            + domain_list
-            + subdomains_dictionary_file
-            + nocheck)
-        
-        print ("STARTING DNSCAN")
-        print ("[# '-d', '--domain']" + domain_flag)
-        print ("[# '-l', '--list']" + domain_list)
-        print ("[# '-w', '--wordlist']" + subdomains_dictionary_file)
-        print ("[# '-t', '--threads']" + threads)
-        print ("[# '-r', '--recursive']" + recursive_flag)
-        print ("[# '-n', '--nocheck']" + nocheck)
-        print (hr)
-
-        os.system('python3 vendors/dnscan/dnscan.py' + args)
 
 hr = '-' * 55
 show_splash_screen()
 
-choice = input("Enter a Choice: ")
-choice = int(choice)
+#choice = input("Enter a Choice: ")
+#choice = int(choice)
+choice = 1
 
 if (choice == 1):
     print (hr)
     #input_domain = str(input ("Enter domain: "))
-    input_domain = 'appcheck-ng.com'
+    input_domain = 'jainuniversity.ac.in'
+    input_domain = 'vu.edu.pk'
     print (hr)
     print ("1. Merging Subdomains into [subdomain-dictionary.txt] for [" + input_domain + "] Domain")
     print (hr)
-    subdomains.generate_subdomains()
+    #idnscan.generate_subdomains()
     print (hr)
     print ('2. Running GITHUB:DNSCAN :' + input_domain)
     print (hr)
-    run_dnscan(input_domain)
+    idnscan.run_dnscan(input_domain)
 elif (choice == 2):
     print (hr)
     print ('Generating subdomains, merged your subdomains directory')
     print (hr)
-    subdomains.generate_subdomains()
+    idnscan.generate_subdomains()
 else:
     print ('bye')
 
@@ -77,7 +53,6 @@ else:
 # -i', '--output-ips',   help="Write discovered IP addresses to a file", dest='output_ips', required=False)
 # -D', '--domain-first', action="store_true", default=False, help='Output domain first, rather than IP address', dest='domain_first', required=False)
 # -v', '--verbose', action="store_true", default=False, help='Verbose mode', dest='verbose', required=False)
-# -n', '--nocheck', action="store_true", default=False, help='Don\'t check nameservers before scanning', dest='nocheck', required=False)
 
 
 

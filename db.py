@@ -1,5 +1,4 @@
 import os
-import config
 from pymongo import MongoClient
 
 class Db:
@@ -9,26 +8,18 @@ class Db:
 
     def __init__(self):
         # node unique ip, which is connecting
-        self.nodeIP = config.node['IP']
         # This should be the centeral db server
         client = MongoClient('127.0.0.1:27017')
         self.DbConnect = client.Recon
 
-    def page_add(self, job_id, job_url, status_code, page_html, page_path, page_full_path):
-        return self.DbConnect.subdomains.insert({
-            "job_id" : job_id,
-            'job_url' : job_url,
-            "status_code" : status_code,
-            "page_html" : page_html,
-            "page_path": page_path,
-            "page_full_path" : page_full_path,
-            "attack_complete": 0,
-            "scan_complete": 0,
-            "exploits_found": 0,
-            "exploit_payloads_found" : '',
-            "exploit_payload_response" : '',
-            "exploit_payload_response_mini" : '',
-            "node_ip": self.nodeIP
+    def scan_add_result(self, root_domain, scanner_slug, scanner_command, scanner_results, scanner_results_filename, scan_datetime):
+        return self.DbConnect.scans.insert({
+            "root_domain" : root_domain,
+            'scanner_slug' : scanner_slug,
+            "scanner_command" : scanner_command,
+            "scanner_results" : scanner_results,
+            "scanner_results_filename" : scanner_results_filename,
+            "scan_datetime" : scan_datetime
         })
 
     def jobs_clear_all_data(self):

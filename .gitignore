@@ -1,3 +1,4 @@
 subdomain-dictionary.txt
 vendors/*
+scan_ouput/*
 *.pyc
