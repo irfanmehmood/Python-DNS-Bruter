@@ -11,7 +11,7 @@ def generate_subdomains():
     domains_list_duplicates = list()
 
     # This is the dir which holds our subdomains
-    path = 'sub-domains-list'
+    path = PATH + '/libs/dns/sub-domains-list'
 
     files = []
     # r=root, d=directories, f = files

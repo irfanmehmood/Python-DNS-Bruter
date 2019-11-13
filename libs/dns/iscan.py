@@ -52,43 +52,6 @@ class DnsScannerInterface(ABC):
 
 class Amass(DnsScannerInterface):
 
-    def intel_command_by_mode(self, mode):
-
-        # Build our command line vars
-        
-        #! -ip & -passive do not work together
-        #* amass enum --passive -d <DOMAIN>
-        #* amass enum --active -d <DOMAIN> -p 80,443,8080
-        #--include-unresolvable	Output DNS names that did not resolve
-        #-list	Print the names of all available data sources
-        #-noalts	Disable generation of altered names
-        #-src	Print data sources for the discovered names
-        #-w	Path to a different wordlist file	amass enum -brute -w wordlist.txt -d example.com
-
-
-        if (mode == 'passive'):
-            amass_cmd = [
-                'amass', 
-                'intel',
-                '-d', self.root_domain,
-                '-o', self.output_file
-            ]
-        elif (mode == 'active'):
-            amass_cmd = [
-                'amass', 
-                'intel',
-                '-active'
-                '-d', self.root_domain,
-                '-o', self.output_file
-            ]
-
-        amass_cmd.append('-list')
-        amass_cmd.append('-noalts')
-        amass_cmd.append('-src')
-
-        return amass_cmd
-
-
     def enum_command_by_mode(self, recursive, mode):
 
         # Build our command line vars
@@ -109,7 +72,7 @@ class Amass(DnsScannerInterface):
             amass_cmd = [
                 'amass', 
                 'enum',
-                '-norecursive' if recursive else '', 
+                '' if recursive else '-norecursive', 
                 '-d', self.root_domain,
                 '-passive',
                 '-o', self.output_file
@@ -118,22 +81,28 @@ class Amass(DnsScannerInterface):
             amass_cmd = [
                 'amass', 
                 'enum',
-                '-norecursive' if recursive else '', 
+                '' if recursive else '-norecursive', 
                 '-d', self.root_domain,
                 '-ip',
                 '-o', self.output_file
             ]
-
-        amass_cmd.append('-list')
-        amass_cmd.append('-noalts')
-        amass_cmd.append('-src')
+        
+        resolvers_file = self.path + '/libs/dns/resolvers.txt'
+        #print (subdomains_dictionary_file)
+        #amass_cmd.append('-src')
         amass_cmd.append('-include-unresolvable')
+        #amass_cmd.append('-brute -min-for-recursive 3 -w ' + subdomains_dictionary_file) 
+        amass_cmd.append('-max-dns-queries 100')
+        #amass_cmd.append('-public-dns') 
+        amass_cmd.append('-rf ' + resolvers_file)
+        
+        
+        
         return amass_cmd
 
     def run(self, recursive=False, mode='passive'):
 
-        command_list = self.intel_command_by_mode()
-        #command_list = self.enum_command_by_mode(recursive, mode)
+        command_list = self.enum_command_by_mode(recursive, mode)
 
         command = ' '.join([str(elem) for elem in command_list])
         print (command)

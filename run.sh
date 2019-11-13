@@ -20,10 +20,13 @@ sudo apt-get install amass
 # chmod +x vendor/torghost/torghost
 
 # Tor ghost always switch IP
-#sudo vendor/torghost/torghost start
-#sudo vendor/torghost/torghost switch
+sudo vendor/torghost/torghost start
+sudo vendor/torghost/torghost switch
 
-python3 libs/main.py
+dnsenum --dnsserver 128.52.130.209 --noreverse --enum  vu.edu.pk -f /home/iffy/irfan/Documents/Python/Python-DNS-Bruter/libs/dns/sub-domains-list/subdomain-dictionary.txt
+
+
+#python3 libs/main.py
 
 #amass viz -d3
 

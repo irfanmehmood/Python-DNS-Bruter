@@ -36,9 +36,9 @@ def run_dns_scanners(input_domain):
         print ('2. Running Scanners for :' + input_domain)
         print (hr)
         for scanner in DNS_SCANNERS:
-            recursive=False
+            recursive=True
             torred=True
-            scanner.run(recursive, 'passive')
+            #scanner.run(recursive, 'passive')
             scanner.run(recursive, 'active')
 
 def save_dns_scanners_to_mongo(input_domain):
@@ -77,8 +77,8 @@ choice = 1
 if (choice == 1):
     print (hr)
     #input_domain = str(input ("Enter domain: "))
-    input_domain = 'jainuniversity.ac.in'
-    #input_domain = 'vu.edu.pk'
+    #input_domain = 'jainuniversity.ac.in'
+    input_domain = 'vu.edu.pk'
     #input_domain = 'tagww.com'
     #input_domain = 'appcheck-ng.com'
     DNS_SCANNERS = dns.iscan.load_scanners(input_domain)
