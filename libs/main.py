@@ -2,6 +2,8 @@
 
 import os
 import sys
+import subprocess
+
 
 
 # SET PATH for our libs/classes
@@ -11,7 +13,7 @@ sys.path.append(CWD + '/dns')
 
 import helper
 import dns.iscan
-#subprocess.call('clear', shell=True)
+subprocess.call('clear', shell=True)
 PATH = os.getcwd()
 DNS_SCANNERS = []
 hr = '-' * 55
@@ -27,6 +29,7 @@ def generate_subdomains_dictionary(input_domain):
         print ("1. Merging Subdomains into [subdomain-dictionary.txt] for [" + input_domain + "] Domain")
         print (hr)
         helper.generate_subdomains()
+        print(hr)
 
 def run_dns_scanners(input_domain):
         print (hr)
@@ -35,7 +38,8 @@ def run_dns_scanners(input_domain):
         for scanner in DNS_SCANNERS:
             recursive=False
             torred=True
-            scanner.run(input_domain, recursive, torred)
+            scanner.run(recursive, 'passive')
+            scanner.run(recursive, 'active')
 
 def save_dns_scanners_to_mongo(input_domain):
 
@@ -73,13 +77,13 @@ choice = 1
 if (choice == 1):
     print (hr)
     #input_domain = str(input ("Enter domain: "))
-    #input_domain = 'jainuniversity.ac.in'
+    input_domain = 'jainuniversity.ac.in'
     #input_domain = 'vu.edu.pk'
-    input_domain = 'tagww.com'
+    #input_domain = 'tagww.com'
     #input_domain = 'appcheck-ng.com'
     DNS_SCANNERS = dns.iscan.load_scanners(input_domain)
     generate_subdomains_dictionary(input_domain)
-    #run_dns_scanners(input_domain)
+    run_dns_scanners(input_domain)
     save_dns_scanners_to_mongo(input_domain)
 elif (choice == 2):
     print (hr)

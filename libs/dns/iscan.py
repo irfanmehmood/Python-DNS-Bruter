@@ -36,6 +36,10 @@ class DnsScannerInterface(ABC):
             print ("Successfully created the directory [%s] " % self.app_slug_output_dir_domain)
             print (hr)
 
+        # Set output file
+        time_text = strftime("%Y-%m-%d-%H:%M:%S", gmtime())
+        self.output_file = self.app_slug_output_dir_domain + '/' + time_text + '.txt'
+
     @abstractmethod
     def run(self, recursive=False, torred=True):
         pass
@@ -48,100 +52,142 @@ class DnsScannerInterface(ABC):
 
 class Amass(DnsScannerInterface):
 
-    def run(self, recursive=False, torred=True):
+    def intel_command_by_mode(self, mode):
 
         # Build our command line vars
-        recursive_subdomain_scan_flag = ' -norecursive' if recursive else ''
-        domain_flag = ' -d ' + self.root_domain
-        domain_list = ''
-        nocheck = ' -n' if torred else ''
-        threads = ' -t 4'
-        show_ip_flag = ' -ip'
+        
+        #! -ip & -passive do not work together
+        #* amass enum --passive -d <DOMAIN>
+        #* amass enum --active -d <DOMAIN> -p 80,443,8080
+        #--include-unresolvable	Output DNS names that did not resolve
+        #-list	Print the names of all available data sources
+        #-noalts	Disable generation of altered names
+        #-src	Print data sources for the discovered names
+        #-w	Path to a different wordlist file	amass enum -brute -w wordlist.txt -d example.com
 
-        # Dictionay file location
-        subdomains_dictionary_file = ' -w subdomain-dictionary.txt'
 
-        # Create our output file
+        if (mode == 'passive'):
+            amass_cmd = [
+                'amass', 
+                'intel',
+                '-d', self.root_domain,
+                '-o', self.output_file
+            ]
+        elif (mode == 'active'):
+            amass_cmd = [
+                'amass', 
+                'intel',
+                '-active'
+                '-d', self.root_domain,
+                '-o', self.output_file
+            ]
+
+        amass_cmd.append('-list')
+        amass_cmd.append('-noalts')
+        amass_cmd.append('-src')
+
+        return amass_cmd
+
+
+    def enum_command_by_mode(self, recursive, mode):
+
+        # Build our command line vars
         time_text = strftime("%Y-%m-%d-%H:%M:%S", gmtime())
         self.output_file = self.app_slug_output_dir_domain + '/' + time_text + '.txt'
-        subdomains_found_output_file = ' -o ' + self.output_file
 
-        
+        #! -ip & -passive do not work together
+        #* amass enum --passive -d <DOMAIN>
+        #* amass enum --active -d <DOMAIN> -p 80,443,8080
+        #--include-unresolvable	Output DNS names that did not resolve
+        #-list	Print the names of all available data sources
+        #-noalts	Disable generation of altered names
+        #-src	Print data sources for the discovered names
+        #-w	Path to a different wordlist file	amass enum -brute -w wordlist.txt -d example.com
 
-        #build our command line string from vars
-        args = (show_ip_flag + domain_flag + recursive_subdomain_scan_flag + subdomains_found_output_file)
-        
-        print ("STARTING amass")
-        print ("[# '-d', '--domain']" + domain_flag)
-        print ("[# '-l', '--list']" + domain_list)
-        print ("[# '-w', '--wordlist']" + subdomains_dictionary_file)
-        print ("[# -o', '--output']" + subdomains_found_output_file)
-        print ("[# '-t', '--threads']" + threads)
-        print ("[# '-r', '--recursive']" + recursive_subdomain_scan_flag)
-        print (hr)
 
-        #run our command
-        command = 'amass enum -ip ' + args
+        if (mode == 'passive'):
+            amass_cmd = [
+                'amass', 
+                'enum',
+                '-norecursive' if recursive else '', 
+                '-d', self.root_domain,
+                '-passive',
+                '-o', self.output_file
+            ]
+        elif (mode == 'active'):
+            amass_cmd = [
+                'amass', 
+                'enum',
+                '-norecursive' if recursive else '', 
+                '-d', self.root_domain,
+                '-ip',
+                '-o', self.output_file
+            ]
+
+        amass_cmd.append('-list')
+        amass_cmd.append('-noalts')
+        amass_cmd.append('-src')
+        amass_cmd.append('-include-unresolvable')
+        return amass_cmd
+
+    def run(self, recursive=False, mode='passive'):
+
+        command_list = self.intel_command_by_mode()
+        #command_list = self.enum_command_by_mode(recursive, mode)
+
+        command = ' '.join([str(elem) for elem in command_list])
+        print (command)
         os.system(command)
 
         return
 
     def save_to_mongo(self, domain, scanner_log_file):
-        # Read data from amass output file
-        with open(scanner_log_file, 'r') as file:
-            results_output = file.read()
-        #print (results_output)
-        # Once finished, format results into something we can work with
-        extracted_lines = self.extract_from_results(scanner_log_file)
+        
+        extracted_lines = []
+        # Now from found subdomains create new scan record
+        with open(scanner_log_file) as file:
+            for line in file:
+                extracted_lines.append(line.rstrip('\n').lower())
 
         # Once finished, format results into something we can work with
-        domains_ips = self.results_to_domain_ip_list(extracted_lines, joined=True, ip=False)
-
+        domains = self.results_to_domain_ip_list(extracted_lines, ip=False)
+        
+        print (domains)
         # Once finished, format results into something we can work with
-        domains = self.results_to_domain_ip_list(extracted_lines, joined=False, ip=False)
+        ips = self.results_to_domain_ip_list(extracted_lines,  ip=True)
 
-        # Once finished, format results into something we can work with
-        ips = self.results_to_domain_ip_list(extracted_lines, joined=False, ip=True)
-
+    
         # Creat a new scan row and gets its ID
         return db.scan_add_result(domain, 
             self.app_slug, 
-            results_output, 
-            domains_ips.sort(),
-            domains.sort(), 
-            ips.sort(), 
-            scanner_log_file, 
+            extracted_lines,
+            domains, 
+            ips, 
+            os.path.basename(scanner_log_file), 
             datetime.datetime.utcnow())
 
 
-    def extract_from_results(self, filepath):
-        data_line = []
-        start_after_this_line = '[*] Scanning '
-        collect_line = False
-        # Now from found subdomains create new scan record
-        with open(filepath) as file:
-            for line in file:
-                if collect_line:
-                    data_line.append(line.rstrip('\n').lower())
-                # We need to check it only once to set it as True
-                if start_after_this_line in line:
-                    collect_line = True
-                
-        #print (data_line)
-        return data_line
 
 
-    def results_to_domain_ip_list(self, extracted_lines, joined=True, ip=True):
+
+    def results_to_domain_ip_list(self, extracted_lines,ip=True):
         info_list = []
 
         for line in extracted_lines:
-            data = line.split(" - ")
-            if joined:
-                info_list.append(data[1]+":"+data[0])
-            else:  
-                if ip:
-                    info_list.append(data[0])
-                else:
-                    info_list.append(data[1])
+            
+            if ip:
+                    data = line.split(" ")
+                    #In passive scan amass does not return IP address
+                    if (len(data) > 0 and len(data) > 1):
+                        info_list.append(data[1])
+            else:
+                    data = line.split(" ")
+                    #In passive scan amass does not return IP address
+                    if (len(data) > 0):
+                        info_list.append(data[0])
+                    else:
+                        info_list.append(data)
+                    
+                
                 
         return info_list

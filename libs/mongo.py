@@ -13,12 +13,11 @@ class Db:
         self.DbConnect = client.Recon
         self.scans_clear_all_data()
 
-    def scan_add_result(self, root_domain, scanner_slug, scanner_results, found_domains_ips, found_domains, found_ips, scanner_results_filename, scan_datetime):
+    def scan_add_result(self, root_domain, scanner_slug, scanner_results, found_domains, found_ips, scanner_results_filename, scan_datetime):
         return self.DbConnect.scans.insert({
             "root_domain" : root_domain,
             'scanner_slug' : scanner_slug,
             "scanner_results" : scanner_results,
-            "found_domains_ips" : found_domains_ips,
             "found_domains" : found_domains,
             "found_ips" : found_ips, 
             "scanner_results_filename" : scanner_results_filename,
