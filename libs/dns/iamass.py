@@ -1,5 +1,5 @@
 import os
-from db import Db
+from mongo import Db
 import sys
 from time import gmtime, strftime
 import datetime
@@ -7,51 +7,15 @@ PATH = os.getcwd()
 hr = '-' * 55
 db = Db()
 
-def generate_subdomains():
-    domains_list = list()
-    domains_list_duplicates = list()
-
-    # This is the dir which holds our subdomains
-    path = 'sub-domains-list'
-
-    files = []
-    # r=root, d=directories, f = files
-    for r, d, f in os.walk(path):
-        for file in f:
-            if '.txt' in file and 'subdomain-dictionary.txt' not in file and 'test' not in file:
-                print ("[" + file + "] MERGED")
-                with open(os.path.join(r, file)) as domian_names_file:
-                    for line in domian_names_file:
-                        domain = line.rstrip('\n').lower()
-                        if domain in domains_list:
-                            #print (domain + ":exits")
-                            domains_list_duplicates.append(domain)
-                        else:
-                            domains_list.append(domain)
-
-    # Sort our list fo subdomains alphabatically
-    domains_list.sort()
-
-    # Write out merged file
-    with open(path + '/subdomain-dictionary.txt', 'w') as f:
-        for item in domains_list:
-            f.write("%s\n" % item)
-
-    print ("[subdomain-dictionary.txt]>> GENERATED")
-    print ("[" + str(len(domains_list_duplicates)) + "]>> SUBDOMAINS  Duplicates Removed")
-    print ("[" + str(len(domains_list)) + "]>> SUBDOMAINS In Dictionary")
-
-    #print domains_list
-
-def run_dnscan(domain, recursive=False, torred=True):
+def run_amass(domain, recursive=False, torred=True):
     #build our command line vars
-    recursive_flag = ' -r' if recursive else ''
+    recursive_flag = ' -norecursive' if recursive else ''
     domain_flag = ' -d ' + domain
     domain_list = ''
     nocheck = ' -n' if torred else ''
     threads = ' -t 4'
-    app_slug = 'dnscan'
-    app_slug_output_dir = PATH + '/scan_output/' + app_slug
+    app_slug = 'amass'
+    app_slug_output_dir = PATH + '/scan-output/' + app_slug
     app_slug_output_dir_domain = app_slug_output_dir + '/' + domain
     print (os.path.isdir(app_slug_output_dir_domain))
     # Create out output directories
@@ -72,32 +36,25 @@ def run_dnscan(domain, recursive=False, torred=True):
     subdomains_found_output_file = ' -o ' + output_file
 
     #build our command line string from vars
-    args = (recursive_flag 
-        + threads
-        + domain_flag 
-        + domain_list
-        + subdomains_dictionary_file
-        + subdomains_found_output_file
-        + nocheck)
+    args = (domain_flag + recursive_flag + subdomains_found_output_file)
     
-    print ("STARTING DNSCAN")
+    print ("STARTING amass")
     print ("[# '-d', '--domain']" + domain_flag)
     print ("[# '-l', '--list']" + domain_list)
     print ("[# '-w', '--wordlist']" + subdomains_dictionary_file)
     print ("[# -o', '--output']" + subdomains_found_output_file)
     print ("[# '-t', '--threads']" + threads)
     print ("[# '-r', '--recursive']" + recursive_flag)
-    print ("[# '-n', '--nocheck']" + nocheck)
     print (hr)
 
     #run our command
-    command = 'python3 vendors/dnscan/dnscan.py' + args
+    command = 'amass enum -ip ' + args
     os.system(command)
 
-    # Read data from dnscan output file
+    # Read data from amass output file
     with open(output_file, 'r') as file:
         results_output = file.read()
-
+    print (results_output)
     # Once finished, format results into something we can work with
     extracted_lines = extract_from_results(output_file)
 
@@ -112,7 +69,7 @@ def run_dnscan(domain, recursive=False, torred=True):
 
     # Creat a new scan row and gets its ID
     scan_id = db.scan_add_result(domain, 
-        'dnscan', 
+        'amass', 
         command , 
         results_output, 
         domains_ips.sort(),
