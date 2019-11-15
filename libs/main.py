@@ -3,6 +3,7 @@
 import os
 import sys
 import subprocess
+import datetime
 
 
 
@@ -14,6 +15,8 @@ sys.path.append(CWD + '/dns')
 import dns.helper
 from dns.amass import Amass
 from dns.dnscan import Dnscan
+from mongo import Db
+
 subprocess.call('clear', shell=True)
 PATH = os.getcwd()
 DNS_SCANNERS = []
@@ -61,7 +64,15 @@ if (choice == 1):
     #* Remove all Duplicates
     ALL_AMASS_FOUND_IPS = dns.helper.merge_lists_remove_duplicates_and_find_ips(ALL_AMASS_FOUND_IPS)
 
-    print (ALL_AMASS_FOUND_IPS)
+    #print (ALL_AMASS_FOUND_IPS)
+
+    db = Db()
+    nmap_scan_exist = db.nmap_scan_exist(input_domain)
+    if (nmap_scan_exist):
+        print ("Nmap IPs exist")
+    else:
+        db.nmap_add_start_domain_ips(input_domain, ALL_AMASS_FOUND_IPS, datetime.datetime.utcnow()):
+        print (ALL_AMASS_FOUND_IPS)
 
     sys.exit()
 

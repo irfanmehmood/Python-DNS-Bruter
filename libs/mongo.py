@@ -67,6 +67,20 @@ class Db:
         }
         return list(self.DbConnect.Dnscan.find(find))
 
+    def nmap_scan_exist(self, start_domain):
+        find = {
+            "start_domain" : start_domain
+        }
+        result = self.DbConnect.NmapDomainIps.find_one(find)
+        return False if result == None else True
+
+    def nmap_add_start_domain_ips(self, start_domain, ips, datetime):
+        return self.DbConnect.NmapDomainIps.insert({
+            "start_domain" : start_domain,
+            "found_ips" : found_ips,
+            "add_datetime" : datetime
+        })
+
     def scans_clear_all_data(self):
         self.DbConnect.Amass.remove({})
         self.DbConnect.Dnscan.remove({})
