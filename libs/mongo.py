@@ -10,37 +10,66 @@ class Db:
         # node unique ip, which is connecting
         # This should be the centeral db server
         client = MongoClient('127.0.0.1:27017')
-        self.DbConnect = client.Recon
+        self.DbConnect = client.DnsBuster
         #self.scans_clear_all_data()
 
-    def scan_add_result(self, root_domain, scanner_slug, scanner_results, found_domains, found_ips, scanner_results_filename, scan_datetime):
-        return self.DbConnect.scans.insert({
-            "root_domain" : root_domain,
-            'scanner_slug' : scanner_slug,
-            "scanner_results" : scanner_results,
-            "found_domains" : found_domains,
+    def amass_add_scan(self, start_domain, scan_results, found_subdomains, found_ips, scan_outputfile, scan_datetime):
+
+        return self.DbConnect.Amass.insert({
+            "start_domain" : start_domain,
+            "scan_results" : scan_results,
+            "found_subdomains" : found_subdomains,
             "found_ips" : found_ips, 
-            "scanner_results_filename" : scanner_results_filename,
+            "scan_outputfile" : scan_outputfile,
             "scan_datetime" : scan_datetime
         })
 
-    def scan_get_by_domain_and_application(self, root_domain, scanner_slug):
+    def amass_scan_exist(self, start_domain):
         find = {
-            "root_domain" : root_domain,
-            "scanner_slug" : scanner_slug
+            "start_domain" : start_domain
         }
-        return list(self.DbConnect.scans.find(find))
-
-    def scan_exist_for_domain(self, root_domain, scanner_slug):
-        find = {
-            "root_domain" : root_domain,
-            "scanner_slug" : scanner_slug
-        }
-        result = self.DbConnect.scans.find_one(find)
+        result = self.DbConnect.Amass.find_one(find)
         return False if result == None else True
 
+    def amass_scans_by_subdomain(self, start_domain):
+        find = {
+            "start_domain" : start_domain,
+        }
+        return list(self.DbConnect.Amass.find(find))
+
+    def dnscan_add_scan(self, 
+        start_domain, 
+        scan_results, 
+        found_subdomains, 
+        found_ips, 
+        scan_outputfile, 
+        scan_datetime):
+        
+        return self.DbConnect.Dnscan.insert({
+            "start_domain" : start_domain,
+            "scan_results" : scan_results,
+            "found_subdomains" : found_subdomains,
+            "found_ips" : found_ips, 
+            "scan_outputfile" : scan_outputfile,
+            "scan_datetime" : scan_datetime
+        })
+
+    def dnscan_scan_exist(self, start_domain):
+        find = {
+            "start_domain" : start_domain
+        }
+        result = self.DbConnect.Dnscan.find_one(find)
+        return False if result == None else True
+
+    def dnscan_scans_by_subdomain(self, start_domain):
+        find = {
+            "start_domain" : start_domain,
+        }
+        return list(self.DbConnect.Dnscan.find(find))
+
     def scans_clear_all_data(self):
-        self.DbConnect.scans.remove({})
+        self.DbConnect.Amass.remove({})
+        self.DbConnect.Dnscan.remove({})
 
 
 # show dbs

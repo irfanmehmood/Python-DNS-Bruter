@@ -41,7 +41,7 @@ def generate_subdomains():
     print ("[" + str(len(domains_list)) + "]>> SUBDOMAINS In Dictionary")
 
 
-def merge_lists_removed_duplicates(lists):
+def merge_lists_remove_duplicates(lists):
 
     non_duplicate_list = []
 
@@ -52,3 +52,42 @@ def merge_lists_removed_duplicates(lists):
 
 
     return non_duplicate_list
+
+
+def merge_lists_remove_duplicates_and_find_ips(lists):
+
+    non_duplicate_list = []
+
+    for l in lists:
+        for ll in l:
+            if ll not in non_duplicate_list:
+                get_ip_address_from_amass_line(ll, non_duplicate_list)
+
+
+    return non_duplicate_list
+
+
+def if_subdomain_valid_clean_it(ok_domain, domain_to_check):
+    # Remove empty line
+    domain_to_check = domain_to_check.rstrip('\n').lower()
+
+    if domain_to_check.endswith(ok_domain):
+         #! Sometimes you get this in domain names in amass scan, just removing it, dont know what it does
+        domain_to_check = domain_to_check.strip('c-domain__target--')
+        domain_to_check = domain_to_check.strip('www.')
+        return domain_to_check
+    else:
+        return False
+
+def get_ip_address_from_amass_line(line, ip_list):
+    ips = line.split(",")
+    for ip in ips:
+        if ":" in ip:
+            print ('illegal ip:' + ip)
+        else:
+            if ip not in ip_list:
+                ip_list.append(ip)
+
+
+   
+

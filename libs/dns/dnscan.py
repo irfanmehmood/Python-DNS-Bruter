@@ -3,6 +3,8 @@ from mongo import Db
 import sys
 from time import gmtime, strftime
 import datetime
+import helper
+
 hr = '-' * 55
 db = Db()
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -20,78 +22,63 @@ class Dnscan():
 
     def brute_force_subdomains(self, domain):
 
-        exist = db.scan_exist_for_domain(domain, self.app_slug)
-
+        exist = db.dnscan_scan_exist(domain)
         if (exist):
-            print ("This domain has been scanned [" + domain + "]")
-            return
-
-        # Create app directory
-        self.app_slug_output_dir = self.path + '/libs/dns/scan-output/' + self.app_slug
-        self.app_slug_output_dir_domain = self.app_slug_output_dir + '/' + self.root_domain
-
-        # Create out output directories
-        try:
-            if os.path.isdir(self.app_slug_output_dir_domain) == False:
-                os.makedirs(self.app_slug_output_dir_domain)
-        except OSError:
-            print ("Creation of the directory [%s] failed" % self.app_slug_output_dir_domain)
-            print (OSError)
-            sys.exit()
+            print ("[DNSCAN] domain has been scanned [" + domain + "]")
         else:
-            print ("Successfully created the directory [%s] " % self.app_slug_output_dir_domain)
-            print (hr)
+            # Create app directory
+            self.app_slug_output_dir = self.path + '/libs/dns/scan-output/' + self.app_slug
+            self.app_slug_output_dir_domain = self.app_slug_output_dir + '/' + self.root_domain
+            # Create out output directories
+            try:
+                if os.path.isdir(self.app_slug_output_dir_domain) == False:
+                    os.makedirs(self.app_slug_output_dir_domain)
+            except OSError:
+                print ("Creation of the directory [%s] failed" % self.app_slug_output_dir_domain)
+                print (OSError)
+                sys.exit()
+            else:
+                print ("Successfully created the directory [%s] " % self.app_slug_output_dir_domain)
+                print (hr)
+            # Set output files
+            self.output_file = self.app_slug_output_dir_domain + '/' + domain + '.txt'
+            resolvers_file = self.path + '/libs/dns/resolvers.txt'
+            sbdomains_dic_file = self.path + '/libs/dns/sub-domains-list/subdomain-dictionary.txt'
+            # IPv6 (AAAA) records found, Try running dnscan with the -6 option
+            # Wild card domains found 104.31.79.27, 104.31.78.27
+            cmd = [
+                'python3', 'vendor/dnscan/dnscan.py',
+                '-d', domain,
+                '-w', sbdomains_dic_file,
+                '-o', self.output_file ,
+                '-t', '32',
+            ]
+            command = ' '.join([str(elem) for elem in cmd])
+            print (command)
+            os.system(command)
 
-        # Set output file
-        self.output_file = self.app_slug_output_dir_domain + '/' + domain + '.txt'
-
-        resolvers_file = self.path + '/libs/dns/resolvers.txt'
-        sbdomains_dic_file = self.path + '/libs/dns/sub-domains-list/subdomain-dictionary.txt'
-
-
-        # IPv6 (AAAA) records found, Try running dnscan with the -6 option
-        # Wild card domains found 104.31.79.27, 104.31.78.27
-
-
-        cmd = [
-            'python3', 'vendor/dnscan/dnscan.py',
-            '-d', domain,
-            '-w', sbdomains_dic_file,
-            '-o', self.output_file ,
-            '-t', '32',
-        ]
-
-        command = ' '.join([str(elem) for elem in cmd])
-        print (command)
-        os.system(command)
-
-        # Read data from dnscan output file
-        with open(self.output_file, 'r') as file:
-            results_output = file.read()
-
-        # Once finished, format results into something we can work with
-        extracted_lines = self.extract_from_results(self.output_file)
-
-        # Once finished, format results into something we can work with
-        domains_ips = self.results_to_domain_ip_list(extracted_lines, joined=True, ip=False)
-
-        # Once finished, format results into something we can work with
-        domains = self.results_to_domain_ip_list(extracted_lines, joined=False, ip=False)
-
-        # Once finished, format results into something we can work with
-        ips = self.results_to_domain_ip_list(extracted_lines, joined=False, ip=True)
-
-        print("Found" + str(len(domains)))
-
-        # Creat a new scan row and gets its ID
-        scan_id = db.scan_add_result(domain, 
-            self.app_slug, 
-            extracted_lines,
-            domains, 
-            ips, 
-            os.path.basename(self.output_file), 
-            datetime.datetime.utcnow())
-        print ("[" + str(scan_id) + "]: Scan Added To Database")
+            # Read data from dnscan output file
+            with open(self.output_file, 'r') as file:
+                results_output = file.read()
+            # Once finished, format results into something we can work with
+            extracted_lines = self.extract_from_results(self.output_file)
+            # Once finished, format results into something we can work with
+            domains_ips = self.results_to_domain_ip_list(extracted_lines, joined=True, ip=False)
+            # Once finished, format results into something we can work with
+            domains = self.results_to_domain_ip_list(extracted_lines, joined=False, ip=False)
+            # Once finished, format results into something we can work with
+            ips = self.results_to_domain_ip_list(extracted_lines, joined=False, ip=True)
+            print("Found" + str(len(domains)))
+            print(hr)
+            # Creat a new scan row and gets its ID
+            scan_id = db.dnscan_add_scan(domain,
+                extracted_lines,
+                domains, 
+                ips, 
+                os.path.basename(self.output_file), 
+                datetime.datetime.utcnow())
+            print ("[" + str(scan_id) + "]: Scan Added To Database")
+            print(hr) 
 
     def extract_from_results(self, filepath):
         data_line = []
@@ -122,13 +109,15 @@ class Dnscan():
                 if ip:
                     info_list.append(data[0])
                 else:
-                    info_list.append(data[1])
+                    ok = helper.if_subdomain_valid_clean_it(self.root_domain, data[1])
+                    if ok:
+                        info_list.append(ok)
                 
         return info_list
 
     def get_domain_subdomains(self, root_domain):
         each_scan_domains = []
-        results = db.scan_get_by_domain_and_application(root_domain, self.app_slug)
+        results = db.dnscan_scans_by_subdomain(root_domain)
         for result in results:
-            each_scan_domains.append(result['found_domains'])
+            each_scan_domains.append(result['found_subdomains'])
         return each_scan_domains

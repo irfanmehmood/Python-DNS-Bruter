@@ -3,6 +3,8 @@ from mongo import Db
 import sys
 from time import gmtime, strftime
 import datetime
+import helper
+
 hr = '-' * 55
 db = Db()
 CWD = os.path.dirname(os.path.realpath(__file__))
@@ -62,21 +64,16 @@ class Amass():
         return amass_cmd
 
     def run_scan(self, recursive=False, mode='passive'):
-
-        exist = db.scan_exist_for_domain(self.root_domain, self.app_slug)
-
+        exist = db.amass_scan_exist(self.root_domain)
         if (exist):
-            print ("This domain has been scanned [" + self.root_domain + "]")
-            return
-
-        command_list = self.enum_command_by_mode(recursive, mode)
-
-        command = ' '.join([str(elem) for elem in command_list])
-        print (command)
-        os.system(command)
-
-        self.save_to_mongo(self.root_domain, self.output_file)
-
+            print ("[AMASS] domain has been scanned [" + self.root_domain + "]")
+            print(hr) 
+        else:
+            command_list = self.enum_command_by_mode(recursive, mode)
+            command = ' '.join([str(elem) for elem in command_list])
+            print (command)
+            os.system(command)
+            self.save_to_mongo(self.root_domain, self.output_file)
         return
 
     def save_to_mongo(self, domain, scanner_log_file):
@@ -86,11 +83,8 @@ class Amass():
         with open(scanner_log_file) as file:
             for line in file:
                 temp_line = line.rstrip('\n').lower()
-
-                #! Sometimes you get this in domain names in amass scan, just removing it, dont know what it does
-                temp_line = temp_line.strip('c-domain__target--')
-                temp_line = temp_line.strip('www.')
                 extracted_lines.append(temp_line)
+                
 
         # Once finished, format results into something we can work with
         domains = self.results_to_domain_ip_list(extracted_lines, ip=False)
@@ -101,8 +95,7 @@ class Amass():
 
     
         # Creat a new scan row and gets its ID
-        return db.scan_add_result(domain, 
-            self.app_slug, 
+        return db.amass_add_scan(domain, 
             extracted_lines,
             domains, 
             ips, 
@@ -122,9 +115,13 @@ class Amass():
                     data = line.split(" ")
                     #In passive scan amass does not return IP address
                     if (len(data) > 0):
-                        info_list.append(data[0])
+                        ok = helper.if_subdomain_valid_clean_it(self.root_domain, data[0])
+                        if ok:
+                            info_list.append(ok)
                     else:
-                        info_list.append(data)
+                        ok = helper.if_subdomain_valid_clean_it(self.root_domain, data)
+                        if ok:
+                            info_list.append(ok)
         return info_list
 
     
@@ -152,7 +149,14 @@ class Amass():
 
     def get_all_found_subdomains_lists_for_domain(self, root_domain):
         each_scan_domains = []
-        results = db.scan_get_by_domain_and_application(root_domain, self.app_slug)
+        results = db.amass_scans_by_subdomain(root_domain)
         for result in results:
-            each_scan_domains.append(result['found_domains'])
+            each_scan_domains.append(result['found_subdomains'])
         return each_scan_domains
+
+    def get_all_found_ip_lists_for_domain(self, root_domain):
+        each_scan_ips = []
+        results = db.amass_scans_by_subdomain(root_domain)
+        for result in results:
+            each_scan_ips.append(result['found_ips'])
+        return each_scan_ips
