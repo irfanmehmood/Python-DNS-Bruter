@@ -88,10 +88,12 @@ class Amass():
 
         # Once finished, format results into something we can work with
         domains = self.results_to_domain_ip_list(extracted_lines, ip=False)
+        domains.sort()
         
         #print (domains)
         # Once finished, format results into something we can work with
         ips = self.results_to_domain_ip_list(extracted_lines,  ip=True)
+        ips.sort()
 
     
         # Creat a new scan row and gets its ID
@@ -117,35 +119,17 @@ class Amass():
                     if (len(data) > 0):
                         ok = helper.if_subdomain_valid_clean_it(self.root_domain, data[0])
                         if ok:
+                            print (data[0])
                             info_list.append(ok)
+                            print (ok)
+
                     else:
                         ok = helper.if_subdomain_valid_clean_it(self.root_domain, data)
                         if ok:
                             info_list.append(ok)
         return info_list
 
-    
-    def save_output_files_to_mongo(self):
-        all_domains_files = {}
-        path = CWD + '/scan-output/' + self.app_slug
-        print (path)
-        for domain in os.listdir(path):
-            path = CWD + '/scan-output/' + self.app_slug + '/' + domain
-            #print (path)
-            for file in os.listdir(path):
-                file_path = path + '/' + file
-                if os.path.isfile(file_path):
-                    all_domains_files[file_path] = domain
-            
-        # Now add all these files data to Database
-        #print (all_domains_files)
-        for key in all_domains_files:
-            domain = all_domains_files[key]
-            filepath = key
-            scan_id = self.save_to_mongo(domain, filepath)
-            #print ("[" + filepath + "]: Scan Added To Database")
-            print ("[" + str(scan_id) + "]: Scan Added To Database")
-            print(hr) 
+
 
     def get_all_found_subdomains_lists_for_domain(self, root_domain):
         each_scan_domains = []

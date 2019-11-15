@@ -25,6 +25,7 @@ class Dnscan():
         exist = db.dnscan_scan_exist(domain)
         if (exist):
             print ("[DNSCAN] domain has been scanned [" + domain + "]")
+            helper.hr()
         else:
             # Create app directory
             self.app_slug_output_dir = self.path + '/libs/dns/scan-output/' + self.app_slug

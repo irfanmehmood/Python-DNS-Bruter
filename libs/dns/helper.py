@@ -4,7 +4,9 @@ import sys
 from time import gmtime, strftime
 import datetime
 PATH = os.getcwd()
-hr = '-' * 55
+
+def hr():
+    print ('-' * 65)
 
 def generate_subdomains():
     domains_list = list()
@@ -42,39 +44,31 @@ def generate_subdomains():
 
 
 def merge_lists_remove_duplicates(lists):
-
     non_duplicate_list = []
-
     for l in lists:
         for ll in l:
             if ll not in non_duplicate_list:
                 non_duplicate_list.append(ll)
-
-
     return non_duplicate_list
 
 
 def merge_lists_remove_duplicates_and_find_ips(lists):
-
     non_duplicate_list = []
-
     for l in lists:
         for ll in l:
             if ll not in non_duplicate_list:
                 get_ip_address_from_amass_line(ll, non_duplicate_list)
-
-
     return non_duplicate_list
 
 
 def if_subdomain_valid_clean_it(ok_domain, domain_to_check):
     # Remove empty line
-    domain_to_check = domain_to_check.rstrip('\n').lower()
-
+    #domain_to_check = domain_to_check.rstrip('\n').lower()
     if domain_to_check.endswith(ok_domain):
          #! Sometimes you get this in domain names in amass scan, just removing it, dont know what it does
-        domain_to_check = domain_to_check.strip('c-domain__target--')
-        domain_to_check = domain_to_check.strip('www.')
+        domain_to_check = domain_to_check.replace('c-domain__target--','')
+        domain_to_check = domain_to_check.replace('www.','')
+        #domain_to_check = domain_to_check.strip('www.')
         return domain_to_check
     else:
         return False
@@ -83,10 +77,23 @@ def get_ip_address_from_amass_line(line, ip_list):
     ips = line.split(",")
     for ip in ips:
         if ":" in ip:
-            print ('illegal ip:' + ip)
+            #print ('illegal ip:' + ip)
+            pass
         else:
             if ip not in ip_list:
                 ip_list.append(ip)
+
+def make_subdomains(domains, root_domain):
+
+    root_first_dot_index = root_domain.find('.')
+    new_list = []
+    for d in domains:
+        first_dot_index = d.find('.') #returns: -1, or index of first where t starts in s
+        generated_domain = d[first_dot_index + 1:len(d)]
+        if generated_domain not in new_list:
+            new_list.append(generated_domain)
+
+    return new_list
 
 
    

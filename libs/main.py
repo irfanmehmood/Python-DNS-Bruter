@@ -15,8 +15,9 @@ sys.path.append(CWD + '/dns')
 import dns.helper
 from dns.amass import Amass
 from dns.dnscan import Dnscan
+from dns.nmap import Nmap
 from mongo import Db
-
+db = Db()
 subprocess.call('clear', shell=True)
 PATH = os.getcwd()
 DNS_SCANNERS = []
@@ -43,8 +44,8 @@ if (choice == 1):
     print (hr)
     #input_domain = str(input ("Enter domain: "))
     #input_domain = 'jainuniversity.ac.in'
-    #input_domain = 'vu.edu.pk'
-    input_domain = 'tagww.com'
+    input_domain = 'vu.edu.pk'
+    #input_domain = 'tagww.com'
     #input_domain = 'appcheck-ng.com'
 
 
@@ -66,16 +67,6 @@ if (choice == 1):
 
     #print (ALL_AMASS_FOUND_IPS)
 
-    db = Db()
-    nmap_scan_exist = db.nmap_scan_exist(input_domain)
-    if (nmap_scan_exist):
-        print ("Nmap IPs exist")
-    else:
-        db.nmap_add_start_domain_ips(input_domain, ALL_AMASS_FOUND_IPS, datetime.datetime.utcnow()):
-        print (ALL_AMASS_FOUND_IPS)
-
-    sys.exit()
-
     #* Remove all Duplicates
     ALL_AMASS_FOUND_SUBDOMAINS = dns.helper.merge_lists_remove_duplicates(ALL_AMASS_FOUND_SUBDOMAINS)
 
@@ -90,18 +81,36 @@ if (choice == 1):
      #* Remove all Duplicates from DNMASSS initial subdomains
     ALL_DNSCAN_INITIAL_SUBDOMAINS = dns.helper.merge_lists_remove_duplicates(ALL_DNSCAN_INITIAL_SUBDOMAINS)
 
+    #Logic generated subdomains from AMASS domains
+    AUTO_GENERATED_SUBDOMAINS = dns.helper.make_subdomains(ALL_AMASS_FOUND_SUBDOMAINS, input_domain)
+
     #* Remove all Duplicates from DNMASSS + AMASS merge
     FINAL_MERGED_SUBDOMAINS_LIST = dns.helper.merge_lists_remove_duplicates([
-        ALL_AMASS_FOUND_SUBDOMAINS, ALL_DNSCAN_INITIAL_SUBDOMAINS]
+        ALL_AMASS_FOUND_SUBDOMAINS, ALL_DNSCAN_INITIAL_SUBDOMAINS, AUTO_GENERATED_SUBDOMAINS]
     )
 
     #* Remove all Duplicates
     print ("[Amass] Found Sub Domains: " + str(len(ALL_AMASS_FOUND_SUBDOMAINS)))
     print ("[Dnmass] Brute Sub Domains For Root Domain : " + str(len(ALL_DNSCAN_INITIAL_SUBDOMAINS)))
+    print ("[Auto] Generated Sub Domains For Root Domain : " + str(len(AUTO_GENERATED_SUBDOMAINS)))
     print ("Final Domains : " + str(len(FINAL_MERGED_SUBDOMAINS_LIST)))
-
+   
+    
     for d in FINAL_MERGED_SUBDOMAINS_LIST:
         Dnscan.brute_force_subdomains(d)
+    sys.exit()
+
+    # NMAP pass it the gathered IPS
+    nmap_scan_exist = db.nmap_scan_exist(input_domain)
+    if (nmap_scan_exist):
+        print ("Nmap IPs exist")
+    else:
+        db.nmap_add_start_domain_ips(input_domain, ALL_AMASS_FOUND_IPS, datetime.datetime.utcnow())
+        print (ALL_AMASS_FOUND_IPS)
+
+    #Start Nmap
+    Nmap = Nmap()
+    Nmap.run_scan(input_domain, ALL_AMASS_FOUND_IPS)
 
 elif (choice == 2):
     print (hr)

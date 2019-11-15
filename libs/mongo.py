@@ -74,7 +74,7 @@ class Db:
         result = self.DbConnect.NmapDomainIps.find_one(find)
         return False if result == None else True
 
-    def nmap_add_start_domain_ips(self, start_domain, ips, datetime):
+    def nmap_add_start_domain_ips(self, start_domain, found_ips, datetime):
         return self.DbConnect.NmapDomainIps.insert({
             "start_domain" : start_domain,
             "found_ips" : found_ips,
