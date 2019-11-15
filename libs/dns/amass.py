@@ -7,50 +7,7 @@ hr = '-' * 55
 db = Db()
 CWD = os.path.dirname(os.path.realpath(__file__))
 
-def load_scanners(root_domain):
-        return [Amass(root_domain)]
-
-def run_scanners(root_domain):
-        DNS_SCANNERS = load_scanners(root_domain)
-        print (hr)
-        print ('Running Scanners for :' + root_domain)
-        print (hr)
-        for scanner in DNS_SCANNERS:
-            recursive=True
-            torred=True
-            #scanner.run(recursive, 'passive')
-            scanner.run(recursive, 'active')
-
-def save_dns_scanners_to_mongo(root_domain):
-
-        DNS_SCANNERS = load_scanners(root_domain)
-
-        for scanner in DNS_SCANNERS:
-            all_domains_files = {}
-            path = CWD + '/scan-output/' + scanner.app_slug
-            print (path)
-            for domain in os.listdir(path):
-                path = CWD + '/scan-output/' + scanner.app_slug + '/' + domain
-                #print (path)
-                for file in os.listdir(path):
-                    file_path = path + '/' + file
-                    if os.path.isfile(file_path):
-                        all_domains_files[file_path] = domain
-                
-            # Now add all these files data to Database
-            #print (all_domains_files)
-            for key in all_domains_files:
-                domain = all_domains_files[key]
-                filepath = key
-                scan_id = scanner.save_to_mongo(domain, filepath)
-                #print ("[" + filepath + "]: Scan Added To Database")
-                print ("[" + str(scan_id) + "]: Scan Added To Database")
-                print(hr)
-
-
-from abc import ABC, abstractmethod
-
-class DnsScannerInterface(ABC):
+class Amass():
 
     def __init__(self, root_domain):
 
@@ -76,27 +33,10 @@ class DnsScannerInterface(ABC):
 
         # Set output file
         time_text = strftime("%Y-%m-%d-%H:%M:%S", gmtime())
-        self.output_file = self.app_slug_output_dir_domain + '/' + time_text + '.txt'
-
-    @abstractmethod
-    def run(self, recursive=False, torred=True):
-        pass
-
-    @abstractmethod
-    def save_to_mongo(self):
-        pass
-
-
-
-class MassDns(DnsScannerInterface):
+        self.output_file = self.app_slug_output_dir_domain + '/' + root_domain + '.txt'
 
     def enum_command_by_mode(self, recursive, mode):
 
-        # Build our command line vars
-        time_text = strftime("%Y-%m-%d-%H:%M:%S", gmtime())
-        self.output_file = self.app_slug_output_dir_domain + '/' + time_text + '.txt'
-
-    
         if (mode == 'passive'):
             amass_cmd = [
                 'amass', 
@@ -121,13 +61,21 @@ class MassDns(DnsScannerInterface):
         
         return amass_cmd
 
-    def run(self, recursive=False, mode='passive'):
+    def run_scan(self, recursive=False, mode='passive'):
+
+        exist = db.scan_exist_for_domain(self.root_domain, self.app_slug)
+
+        if (exist):
+            print ("This domain has been scanned [" + self.root_domain + "]")
+            return
 
         command_list = self.enum_command_by_mode(recursive, mode)
 
         command = ' '.join([str(elem) for elem in command_list])
         print (command)
         os.system(command)
+
+        self.save_to_mongo(self.root_domain, self.output_file)
 
         return
 
@@ -137,7 +85,12 @@ class MassDns(DnsScannerInterface):
         # Now from found subdomains create new scan record
         with open(scanner_log_file) as file:
             for line in file:
-                extracted_lines.append(line.rstrip('\n').lower())
+                temp_line = line.rstrip('\n').lower()
+
+                #! Sometimes you get this in domain names in amass scan, just removing it, dont know what it does
+                temp_line = temp_line.strip('c-domain__target--')
+                temp_line = temp_line.strip('www.')
+                extracted_lines.append(temp_line)
 
         # Once finished, format results into something we can work with
         domains = self.results_to_domain_ip_list(extracted_lines, ip=False)
@@ -158,7 +111,6 @@ class MassDns(DnsScannerInterface):
 
     def results_to_domain_ip_list(self, extracted_lines,ip=True):
         info_list = []
-
         for line in extracted_lines:
             
             if ip:
@@ -173,7 +125,34 @@ class MassDns(DnsScannerInterface):
                         info_list.append(data[0])
                     else:
                         info_list.append(data)
-                    
-                
-                
         return info_list
+
+    
+    def save_output_files_to_mongo(self):
+        all_domains_files = {}
+        path = CWD + '/scan-output/' + self.app_slug
+        print (path)
+        for domain in os.listdir(path):
+            path = CWD + '/scan-output/' + self.app_slug + '/' + domain
+            #print (path)
+            for file in os.listdir(path):
+                file_path = path + '/' + file
+                if os.path.isfile(file_path):
+                    all_domains_files[file_path] = domain
+            
+        # Now add all these files data to Database
+        #print (all_domains_files)
+        for key in all_domains_files:
+            domain = all_domains_files[key]
+            filepath = key
+            scan_id = self.save_to_mongo(domain, filepath)
+            #print ("[" + filepath + "]: Scan Added To Database")
+            print ("[" + str(scan_id) + "]: Scan Added To Database")
+            print(hr) 
+
+    def get_all_found_subdomains_lists_for_domain(self, root_domain):
+        each_scan_domains = []
+        results = db.scan_get_by_domain_and_application(root_domain, self.app_slug)
+        for result in results:
+            each_scan_domains.append(result['found_domains'])
+        return each_scan_domains

@@ -39,3 +39,16 @@ def generate_subdomains():
     print ("[subdomain-dictionary.txt]>> GENERATED")
     print ("[" + str(len(domains_list_duplicates)) + "]>> SUBDOMAINS  Duplicates Removed")
     print ("[" + str(len(domains_list)) + "]>> SUBDOMAINS In Dictionary")
+
+
+def merge_lists_removed_duplicates(lists):
+
+    non_duplicate_list = []
+
+    for l in lists:
+        for ll in l:
+            if ll not in non_duplicate_list:
+                non_duplicate_list.append(ll)
+
+
+    return non_duplicate_list
